@@ -1,0 +1,47 @@
+name: Build Reverie IPA
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: |
+          sudo xcode-select -s /Applications/Xcode_16.4.app
+          xcodebuild -version
+
+      - name: Resolve packages
+        run: |
+          xcodebuild \
+            -project Reverie.xcodeproj \
+            -resolvePackageDependencies
+
+      - name: Build app
+        run: |
+          xcodebuild \
+            -project Reverie.xcodeproj \
+            -target Reverie \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            DEVELOPMENT_TEAM=""
+
+      - name: Create IPA
+        run: |
+          mkdir -p Payload
+          cp -R build/Build/Products/Release-iphoneos/Reverie.app Payload/
+          zip -r Reverie.ipa Payload
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: Reverie-IPA
+          path: Reverie.ipa
